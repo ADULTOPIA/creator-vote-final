@@ -12,6 +12,7 @@ import { theme } from './styles/theme';
 import { GlobalStyle } from './styles/GlobalStyle';
 import HomePage from './pages/HomePage';
 import analytics from './services/analytics';
+import ComingSoon from './pages/ComingSoon';
 
 const Main = styled.main`
   background-color: ${({ theme }) => theme.colors.white};
@@ -41,7 +42,8 @@ function AppContent() {
       </Helmet>
       <Main>
         <Routes>
-          <Route path="/" element={<HomePage />} />
+          <Route path="/" element={<ComingSoon />} />
+          {/* <Route path="/" element={<HomePage />} /> */}
         </Routes>
       </Main>
     </>
