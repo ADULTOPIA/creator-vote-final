@@ -5,7 +5,7 @@ declare global {
   }
 }
 
-export const GA_ID = 'G-5B7L2WNLNG';
+export const GA_ID = 'G-08GHNMHKYN';
 
 export function pageview(path: string) {
   if (typeof window !== 'undefined') {
