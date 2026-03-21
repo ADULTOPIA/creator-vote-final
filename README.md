@@ -1,4 +1,4 @@
-# Creator Vote
+# Creator Vote Final
 
 人気投票サイトのフロントエンド（React + Tailwind）プロトタイプです。
 
@@ -6,12 +6,12 @@
 
 ```bash
 git clone <repo>
-cd creator-vote/creator-vote
+cd creator-vote-final/creator-vote-final
 npm install
 npm start
 ```
 
-ブラウザで `http://localhost:3000/creator-vote` を開いてください（CRAのhomepage設定に合わせています）。
+ブラウザで `http://localhost:3000/creator-vote-final` を開いてください（CRAのhomepage設定に合わせています）。
 
 ## LAN 共有で開発
 
@@ -22,7 +22,7 @@ npm run start:lan
 ```
 
 表示されるアドレス例：
-`http://<このPCのローカルIP>:3000/creator-vote`
+`http://<このPCのローカルIP>:3000/creator-vote-final`
 
 ## ビルド
 

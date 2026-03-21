@@ -500,7 +500,7 @@ const HomePage: React.FC = () => {
             <div className="flex items-center gap-3">
               <img
                 src={`${process.env.PUBLIC_URL}/adultopia/logoYoko.png`}
-                alt="Creator Vote"
+                alt="Creator Vote Final"
                 className="h-8 w-auto"
               />
             </div>

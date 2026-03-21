@@ -1,8 +1,8 @@
 {
-  "name": "creator-vote",
+  "name": "creator-vote-final",
   "version": "0.1.0",
   "private": true,
-  "homepage": "https://adultopia.github.io/creator-vote",
+  "homepage": "https://adultopia.github.io/creator-vote-final",
   "dependencies": {
     "@testing-library/dom": "^10.4.0",
     "@testing-library/jest-dom": "^6.6.3",

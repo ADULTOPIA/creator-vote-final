@@ -1,11 +1,11 @@
-# Creator Vote 公式サイト
+# Creator Vote Final 公式サイト
 
 2026 Adultopia 大人國のクリエイター人気投票の公式ウェブサイトです。
 
 ## サイトURL
 
 公式サイトは以下のURLでアクセスできます：
-[http://localhost:3000/creator-vote](http://localhost:3000/creator-vote)
+[http://localhost:3000/creator-vote-final](http://localhost:3000/creator-vote-final)
 
 ## 概要
 
