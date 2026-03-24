@@ -31,6 +31,8 @@ const HomePage: React.FC = () => {
   const [showTokenModal, setShowTokenModal] = React.useState(false);
   const [pendingCreator, setPendingCreator] = React.useState<Creator | null>(null);
   const langMenuRef = React.useRef<HTMLDivElement>(null);
+  const tRef = React.useRef(t);
+  React.useEffect(() => { tRef.current = t; });
   const cardRadiusClass = 'rounded-2xl';
 
   // 言語メニュー外クリック検出
@@ -69,25 +71,27 @@ const HomePage: React.FC = () => {
         setSelectedIds([]);
         setErrorMessage(null);
       } catch (error) {
-        if (error instanceof DOMException && error.name === 'AbortError') {
+        if (controller.signal.aborted) {
           return;
         }
 
-        const fallbackMessage = error instanceof Error ? error.message : t('unknownError');
+        const fallbackMessage = error instanceof Error ? error.message : tRef.current('unknownError');
         // Track fetch error
         analytics.event('data_load_error', {
           error_message: fallbackMessage.substring(0, 100),
         });
         setErrorMessage(fallbackMessage);
-      } finally {
         setIsLoading(false);
+        return;
       }
+      setIsLoading(false);
     };
 
     loadPageData();
 
     return () => controller.abort();
-  }, [refreshToken, t]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshToken]);
 
   React.useEffect(() => {
     if (!isLoading && !errorMessage && creators.length === 0) {
