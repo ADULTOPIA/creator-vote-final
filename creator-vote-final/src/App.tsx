@@ -42,8 +42,8 @@ function AppContent() {
       </Helmet>
       <Main>
         <Routes>
-          <Route path="/" element={<ComingSoon />} />
-          {/* <Route path="/" element={<HomePage />} /> */}
+          {/* <Route path="/" element={<ComingSoon />} /> */}
+          <Route path="/" element={<HomePage />} />
         </Routes>
       </Main>
     </>
