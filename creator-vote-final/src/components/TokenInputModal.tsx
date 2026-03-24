@@ -1,11 +1,14 @@
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Creator } from '../types/creator';
+import SmallCreatorCard from './SmallCreatorCard';
 
 interface TokenInputModalProps {
   isOpen: boolean;
   onConfirm: (token: string) => void;
   onCancel: () => void;
   isSubmitting?: boolean;
+  creator?: Creator;
 }
 
 const TokenInputModal: React.FC<TokenInputModalProps> = ({
@@ -13,6 +16,7 @@ const TokenInputModal: React.FC<TokenInputModalProps> = ({
   onConfirm,
   onCancel,
   isSubmitting = false,
+  creator,
 }) => {
   const { t } = useTranslation();
   const [segments, setSegments] = useState<[string, string, string, string]>(['', '', '', '']);
@@ -45,7 +49,6 @@ const TokenInputModal: React.FC<TokenInputModalProps> = ({
 
   React.useEffect(() => {
     if (isOpen) {
-      setSegments(['', '', '', '']);
       setTimeout(() => inputRefs[0].current?.focus(), 50);
     }
   }, [isOpen]);
@@ -98,7 +101,7 @@ const TokenInputModal: React.FC<TokenInputModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-800">トークンを入力</h2>
+          <h2 className="text-lg font-bold text-gray-800">コードを入力してクリエイターに投票</h2>
           <button
             type="button"
             onClick={onCancel}
@@ -109,9 +112,15 @@ const TokenInputModal: React.FC<TokenInputModalProps> = ({
           </button>
         </div>
 
+        {creator && (
+          <div className="flex flex-wrap gap-2 justify-center mb-4">
+            <SmallCreatorCard creator={creator} />
+          </div>
+        )}
+
         <div className="mb-6">
           <p className="text-sm text-gray-600 mb-4 text-center">
-            16文字のトークンを入力してください
+            16桁のコードを入力してください
           </p>
           <div className="flex items-center justify-center gap-2">
             {segments.map((seg, i) => (

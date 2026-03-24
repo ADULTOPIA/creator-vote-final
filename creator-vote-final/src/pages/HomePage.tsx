@@ -33,6 +33,7 @@ const HomePage: React.FC = () => {
   const [floatingHearts, setFloatingHearts] = React.useState<Array<{ id: string; x: number; y: number; size: 'large' | 'small'; duration: number }>>([]);
   const [showLanguageMenu, setShowLanguageMenu] = React.useState(false);
   const [showTokenModal, setShowTokenModal] = React.useState(false);
+  const [pendingCreator, setPendingCreator] = React.useState<Creator | null>(null);
   const langMenuRef = React.useRef<HTMLDivElement>(null);
   const cardRadiusClass = 'rounded-2xl';
 
@@ -153,23 +154,6 @@ const HomePage: React.FC = () => {
     setFloatingHearts(prev => prev.filter(heart => heart.id !== id));
   };
 
-  const toggleSelect = (id: string) => {
-    if (lockedIds.includes(id)) {
-      return;
-    }
-
-    // Track creator tap event
-    analytics.event('creator_tap', {
-      creator_id: id,
-    });
-
-    setSelectedIds(prev => {
-      if (prev.includes(id)) {
-        return prev.filter(item => item !== id);
-      }
-      return [...prev, id];
-    });
-  };
 
   const newSelections = selectedIds.filter(id => !lockedIds.includes(id));
 
@@ -275,6 +259,42 @@ const HomePage: React.FC = () => {
     }
   };
 
+  const handleTokenConfirm = async (enteredCode: string) => {
+    if (!pendingCreator) return;
+
+    setIsSubmitting(true);
+    setSubmitMessage(null);
+
+    try {
+      const result = await submitVotes(enteredCode, [pendingCreator.creatorId]);
+
+      analytics.event('vote_submitted', { vote_count: result.acceptedCreatorIds.length });
+
+      setLockedIds(prev => [...prev, ...result.acceptedCreatorIds]);
+      setCreators(prev => prev.map(c =>
+        result.acceptedCreatorIds.includes(c.creatorId)
+          ? { ...c, totalVoteCount: c.totalVoteCount + 1 }
+          : c
+      ));
+      setPendingCreator(null);
+      setSubmitMessage({ type: 'success', text: `${pendingCreator.displayName} への投票が完了しました！` });
+    } catch (error) {
+      if (error instanceof VoteApiError) {
+        const errCode = error.code;
+        let text = t('serverError');
+        if (errCode === 'INVALID_TOKEN') text = 'コードが無効です。';
+        else if (errCode === 'TOKEN_ALREADY_USED') text = 'このコードはすでに使用済みです。';
+        else if (errCode === 'INVALID_REQUEST') text = t('votingError');
+        setSubmitMessage({ type: 'error', text, code: errCode, status: error.status });
+      } else {
+        setSubmitMessage({ type: 'error', text: t('votingError') });
+      }
+    } finally {
+      setIsSubmitting(false);
+      setShowTokenModal(false);
+    }
+  };
+
   const renderContent = () => {
     if (isLoading) {
       return <Loading message={t('loadingCreators')} />;
@@ -324,7 +344,8 @@ const HomePage: React.FC = () => {
                     setShowAlreadyVotedModal(true);
                     return;
                   }
-                  toggleSelect(creator.creatorId);
+                  setPendingCreator(creator);
+                  setShowTokenModal(true);
                 }}
                 className={`text-left ${cardRadiusClass} shadow-sm transition hover:shadow-md ${cardClass}`}
               >
@@ -442,16 +463,6 @@ const HomePage: React.FC = () => {
               />
             </div>
             <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={() => setShowTokenModal(true)}
-                className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-300 hover:bg-gray-400 transition shadow flex-shrink-0"
-                title="トークン入力"
-              >
-                <svg className="h-5 w-5 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
-                  <path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
-                </svg>
-              </button>
               <div className="relative" ref={langMenuRef}>
                 <button
                   type="button"
@@ -600,10 +611,32 @@ const HomePage: React.FC = () => {
         <Modal
           isOpen={!!submitMessage}
           title={submitMessage?.type === 'success' ? t('success') : t('error')}
-          onCancel={() => setSubmitMessage(null)}
+          onCancel={
+            submitMessage?.code === 'INVALID_TOKEN' || submitMessage?.code === 'TOKEN_ALREADY_USED'
+              ? () => { setSubmitMessage(null); setPendingCreator(null); }
+              : () => setSubmitMessage(null)
+          }
+          disableBackgroundClose={submitMessage?.code === 'INVALID_TOKEN' || submitMessage?.code === 'TOKEN_ALREADY_USED'}
           buttons={
-            // VOTE_RULE_VIOLATION -> force reload
-            submitMessage?.type === 'error' && submitMessage?.code === 'VOTE_RULE_VIOLATION'
+            submitMessage?.type === 'success'
+              ? [
+                  {
+                    label: t('okButton'),
+                    onClick: () => setSubmitMessage(null),
+                    variant: 'primary' as const,
+                  },
+                ]
+              // Token errors -> reopen token modal to retry
+              : (submitMessage?.code === 'INVALID_TOKEN' || submitMessage?.code === 'TOKEN_ALREADY_USED')
+              ? [
+                  {
+                    label: t('retryButton'),
+                    onClick: () => { setSubmitMessage(null); setShowTokenModal(true); },
+                    variant: 'primary' as const,
+                  },
+                ]
+              // VOTE_RULE_VIOLATION -> force reload
+              : submitMessage?.code === 'VOTE_RULE_VIOLATION'
               ? [
                   {
                     label: t('reloadButton'),
@@ -657,9 +690,12 @@ const HomePage: React.FC = () => {
         </Modal>
 
         <TokenInputModal
+          key={pendingCreator?.creatorId ?? 'none'}
           isOpen={showTokenModal}
-          onConfirm={(_token) => setShowTokenModal(false)}
-          onCancel={() => setShowTokenModal(false)}
+          creator={pendingCreator ?? undefined}
+          onConfirm={handleTokenConfirm}
+          onCancel={() => { setShowTokenModal(false); setPendingCreator(null); }}
+          isSubmitting={isSubmitting}
         />
       </div>
     </div>

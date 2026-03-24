@@ -51,6 +51,7 @@ interface ModalProps {
   onConfirm?: () => void;
   onCancel?: () => void;
   scrollable?: boolean;
+  disableBackgroundClose?: boolean;
 }
 
 const Modal: React.FC<ModalProps> = ({
@@ -63,6 +64,7 @@ const Modal: React.FC<ModalProps> = ({
   onConfirm,
   onCancel,
   scrollable = false,
+  disableBackgroundClose = false,
 }) => {
   const { t } = useTranslation();
   React.useEffect(() => {
@@ -121,7 +123,7 @@ const Modal: React.FC<ModalProps> = ({
 
   const handleBackgroundClick = (e: React.MouseEvent<HTMLDivElement>) => {
     // 背景をクリックしたときのみ処理（モーダル内のクリックは stopPropagation で止める）
-    if (e.target === e.currentTarget && onCancel) {
+    if (e.target === e.currentTarget && onCancel && !disableBackgroundClose) {
       onCancel();
     }
   };
