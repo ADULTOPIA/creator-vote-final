@@ -269,13 +269,13 @@ const HomePage: React.FC = () => {
           : c
       ));
       setPendingCreator(null);
-      setSubmitMessage({ type: 'success', text: `${pendingCreator.displayName} への投票が完了しました！` });
+      setSubmitMessage({ type: 'success', text: t('voteSuccess', { name: pendingCreator.displayName }) });
     } catch (error) {
       if (error instanceof VoteApiError) {
         const errCode = error.code;
         let text = t('serverError');
-        if (errCode === 'INVALID_TOKEN') text = 'コードが無効です。';
-        else if (errCode === 'TOKEN_ALREADY_USED') text = 'このコードはすでに使用済みです。';
+        if (errCode === 'INVALID_TOKEN') text = t('invalidToken');
+        else if (errCode === 'TOKEN_ALREADY_USED') text = t('tokenAlreadyUsed');
         else if (errCode === 'INVALID_REQUEST') text = t('votingError');
         setSubmitMessage({ type: 'error', text, code: errCode, status: error.status });
       } else {
