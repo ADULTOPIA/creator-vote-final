@@ -7,6 +7,7 @@ import { fetchCreators } from '../services/creatorService';
 import { submitVotes, VoteApiError } from '../services/voteService';
 import { Creator } from '../types/creator';
 import Modal from '../components/Modal';
+import TokenInputModal from '../components/TokenInputModal';
 import Loading from '../components/Loading';
 import SmallCreatorCard from '../components/SmallCreatorCard';
 import Footer from '../components/Footer';
@@ -31,6 +32,7 @@ const HomePage: React.FC = () => {
   const [showNoCreatorsModal, setShowNoCreatorsModal] = React.useState(false);
   const [floatingHearts, setFloatingHearts] = React.useState<Array<{ id: string; x: number; y: number; size: 'large' | 'small'; duration: number }>>([]);
   const [showLanguageMenu, setShowLanguageMenu] = React.useState(false);
+  const [showTokenModal, setShowTokenModal] = React.useState(false);
   const langMenuRef = React.useRef<HTMLDivElement>(null);
   const cardRadiusClass = 'rounded-2xl';
 
@@ -440,6 +442,16 @@ const HomePage: React.FC = () => {
               />
             </div>
             <div className="flex items-center gap-4">
+              <button
+                type="button"
+                onClick={() => setShowTokenModal(true)}
+                className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-300 hover:bg-gray-400 transition shadow flex-shrink-0"
+                title="トークン入力"
+              >
+                <svg className="h-5 w-5 text-gray-600" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12.65 10C11.83 7.67 9.61 6 7 6c-3.31 0-6 2.69-6 6s2.69 6 6 6c2.61 0 4.83-1.67 5.65-4H17v4h4v-4h2v-4H12.65zM7 14c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2z"/>
+                </svg>
+              </button>
               <div className="relative" ref={langMenuRef}>
                 <button
                   type="button"
@@ -643,6 +655,12 @@ const HomePage: React.FC = () => {
         >
           <p className="text-sm text-gray-600">{errorMessage}</p>
         </Modal>
+
+        <TokenInputModal
+          isOpen={showTokenModal}
+          onConfirm={(_token) => setShowTokenModal(false)}
+          onCancel={() => setShowTokenModal(false)}
+        />
       </div>
     </div>
   );
