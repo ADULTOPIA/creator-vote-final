@@ -9,7 +9,6 @@ import { Creator } from '../types/creator';
 import Modal from '../components/Modal';
 import TokenInputModal from '../components/TokenInputModal';
 import Loading from '../components/Loading';
-import SmallCreatorCard from '../components/SmallCreatorCard';
 import Footer from '../components/Footer';
 import FloatingHeart from '../components/FloatingHeart';
 import { availableLanguages, languageNames } from '../i18n';
@@ -19,7 +18,6 @@ const HomePage: React.FC = () => {
   const { t, i18n } = useTranslation();
 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
-  const [lockedIds, setLockedIds] = React.useState<string[]>([]);
   const [creators, setCreators] = React.useState<Creator[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
@@ -27,8 +25,6 @@ const HomePage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitMessage, setSubmitMessage] = React.useState<{ type: 'success' | 'error'; text: string; code?: string; status?: number } | null>(null);
   const [showConfirmPopup, setShowConfirmPopup] = React.useState(false);
-  const [showNoVotesModal, setShowNoVotesModal] = React.useState(false);
-  const [showAlreadyVotedModal, setShowAlreadyVotedModal] = React.useState(false);
   const [showNoCreatorsModal, setShowNoCreatorsModal] = React.useState(false);
   const [floatingHearts, setFloatingHearts] = React.useState<Array<{ id: string; x: number; y: number; size: 'large' | 'small'; duration: number }>>([]);
   const [showLanguageMenu, setShowLanguageMenu] = React.useState(false);
@@ -70,7 +66,6 @@ const HomePage: React.FC = () => {
         }
 
         setCreators(shuffled);
-        setLockedIds([]);
         setSelectedIds([]);
         setErrorMessage(null);
       } catch (error) {
@@ -104,7 +99,6 @@ const HomePage: React.FC = () => {
 
   const retryFetch = () => {
     setSelectedIds([]);
-    setLockedIds([]);
     setCreators([]);
     setErrorMessage(null);
     setIsLoading(true);
@@ -155,7 +149,7 @@ const HomePage: React.FC = () => {
   };
 
 
-  const newSelections = selectedIds.filter(id => !lockedIds.includes(id));
+  const newSelections = selectedIds;
 
   // Show confirmation popup instead of submitting immediately
   const handleVoteClick = () => {
@@ -188,7 +182,6 @@ const HomePage: React.FC = () => {
         vote_count: result.acceptedCreatorIds.length,
       });
 
-      setLockedIds(prev => [...prev, ...result.acceptedCreatorIds]);
       setCreators(prev => prev.map(creator =>
         result.acceptedCreatorIds.includes(creator.creatorId)
           ? { ...creator, totalVoteCount: creator.totalVoteCount + 1 }
@@ -270,7 +263,6 @@ const HomePage: React.FC = () => {
 
       analytics.event('vote_submitted', { vote_count: result.acceptedCreatorIds.length });
 
-      setLockedIds(prev => [...prev, ...result.acceptedCreatorIds]);
       setCreators(prev => prev.map(c =>
         result.acceptedCreatorIds.includes(c.creatorId)
           ? { ...c, totalVoteCount: c.totalVoteCount + 1 }
@@ -301,49 +293,19 @@ const HomePage: React.FC = () => {
     }
 
 
-    const votedCreators = lockedIds
-      .map(id => creators.find(creator => creator.creatorId === id))
-      .filter((creator): creator is Creator => Boolean(creator));
-
     return (
       <div className="flex flex-col gap-6">
-        {lockedIds.length > 0 && (
-          <section className="rounded-2xl border border-pink-100 bg-white/80 p-4 shadow-sm">
-            <p className="text-sm font-semibold text-pink-500">
-              {t('votedToday')} {lockedIds.length} {t('votedTickets')}
-            </p>
-            <p className="mt-1 text-xs text-gray-600">
-              {t('cannotCancelVotes')}
-            </p>
-            <div className="mt-4 flex flex-wrap gap-3">
-              {votedCreators.map(creator => (
-                <SmallCreatorCard key={creator.creatorId} creator={creator} />
-              ))}
-            </div>
-          </section>
-        )}
-
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {creators.map(creator => {
             const isSelected = selectedIds.includes(creator.creatorId);
-            const isLocked = lockedIds.includes(creator.creatorId);
-            let cardClass = '';
-            if (isLocked) {
-              cardClass = 'bg-white border border-gray-200 cursor-not-allowed';
-            } else if (isSelected) {
-              cardClass = 'bg-pink-50 border-[3px] border-[#FF69B4] ring-2 ring-[#FF69B4] cursor-pointer';
-            } else {
-              cardClass = 'bg-white border border-gray-200 cursor-pointer';
-            }
+            const cardClass = isSelected
+              ? 'bg-pink-50 border-[3px] border-[#FF69B4] ring-2 ring-[#FF69B4] cursor-pointer'
+              : 'bg-white border border-gray-200 cursor-pointer';
             return (
               <button
                 key={creator.creatorId}
                 type="button"
                 onClick={() => {
-                  if (isLocked) {
-                    setShowAlreadyVotedModal(true);
-                    return;
-                  }
                   setPendingCreator(creator);
                   setShowTokenModal(true);
                 }}
@@ -405,13 +367,6 @@ const HomePage: React.FC = () => {
                     <p className="text-xs md:text-sm text-gray-500">
                       {t('totalVotes')} {creator.totalVoteCount.toLocaleString()}
                     </p>
-                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${
-                      isLocked
-                        ? 'bg-pink-50 text-pink-500'
-                        : 'invisible'
-                    }`}>
-                      {t('votedBadge')}
-                    </span>
                   </div>
                 </div>
               </button>
@@ -590,21 +545,6 @@ const HomePage: React.FC = () => {
           ]}
         >
           <p className="text-sm text-gray-600">{t('noCreatorsFound')}</p>
-        </Modal>
-
-        <Modal
-          isOpen={showAlreadyVotedModal}
-          title={t('alreadyVotedTitle')}
-          onCancel={() => setShowAlreadyVotedModal(false)}
-          buttons={[
-            {
-              label: t('okButton'),
-              onClick: () => setShowAlreadyVotedModal(false),
-              variant: 'primary' as const,
-            },
-          ]}
-        >
-          <p className="text-sm text-gray-600">{t('alreadyVotedText')}</p>
         </Modal>
 
         {/* Notification modal for submit results */}
