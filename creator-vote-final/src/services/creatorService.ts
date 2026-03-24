@@ -1,6 +1,34 @@
+import { collection, onSnapshot, orderBy, query } from 'firebase/firestore';
+import { db } from '../firebase';
 import { Creator } from '../types/creator';
 
 import { API_BASE_URL } from './apiConfig';
+
+type UnsubscribeFn = () => void;
+
+export const subscribeToCreators = (
+  onUpdate: (creators: Creator[]) => void,
+  onError: (error: Error) => void
+): UnsubscribeFn => {
+  const q = query(
+    collection(db, 'creators'),
+    orderBy('totalVoteCount', 'desc')
+  );
+
+  return onSnapshot(
+    q,
+    (snapshot) => {
+      const creators = snapshot.docs.map((doc) => ({
+        creatorId: doc.id,
+        ...doc.data(),
+      })) as Creator[];
+      onUpdate(creators);
+    },
+    (error) => {
+      onError(new Error(`リアルタイム更新エラー: ${error.message}`));
+    }
+  );
+};
 
 const API_PATH = '/creators';
 const API_ENDPOINT = `${API_BASE_URL}${API_PATH}`;

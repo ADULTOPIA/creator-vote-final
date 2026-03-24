@@ -1,5 +1,5 @@
 import React from 'react';
-import { fetchCreators } from '../services/creatorService';
+import { subscribeToCreators } from '../services/creatorService';
 import { Creator } from '../types/creator';
 import Loading from '../components/Loading';
 import TopRankCard from '../components/TopRankCard';
@@ -11,22 +11,18 @@ const RankingPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   React.useEffect(() => {
-    const controller = new AbortController();
-    const load = async () => {
-      setIsLoading(true);
-      setErrorMessage(null);
-      try {
-        const data = await fetchCreators({ signal: controller.signal });
-        setCreators([...data].sort((a, b) => b.totalVoteCount - a.totalVoteCount));
-      } catch (error) {
-        if (controller.signal.aborted) return;
-        setErrorMessage(error instanceof Error ? error.message : 'エラーが発生しました');
-      } finally {
+    const unsubscribe = subscribeToCreators(
+      (data) => {
+        setCreators(data);
+        setIsLoading(false);
+        setErrorMessage(null);
+      },
+      (error) => {
+        setErrorMessage(error.message);
         setIsLoading(false);
       }
-    };
-    load();
-    return () => controller.abort();
+    );
+    return () => unsubscribe();
   }, []);
 
   const top3 = creators.slice(0, 3);
