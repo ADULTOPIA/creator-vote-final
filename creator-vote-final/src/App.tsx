@@ -13,6 +13,7 @@ import { GlobalStyle } from './styles/GlobalStyle';
 import HomePage from './pages/HomePage';
 import analytics from './services/analytics';
 import ComingSoon from './pages/ComingSoon';
+import RankingPage from './pages/RankingPage';
 
 const Main = styled.main`
   background-color: ${({ theme }) => theme.colors.white};
@@ -44,6 +45,7 @@ function AppContent() {
         <Routes>
           {/* <Route path="/" element={<ComingSoon />} /> */}
           <Route path="/" element={<HomePage />} />
+          <Route path="/ranking" element={<RankingPage />} />
         </Routes>
       </Main>
     </>
