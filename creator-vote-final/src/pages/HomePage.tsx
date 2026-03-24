@@ -427,10 +427,17 @@ const HomePage: React.FC = () => {
                 >
                   <svg
                     className="h-5 w-5 text-gray-600"
-                    fill="currentColor"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
                     viewBox="0 0 24 24"
                   >
-                    <path d="M12.87 15.07L10.33 12.56h.86c4.1 0 7.48-1.05 9.84-3.41v2.64c-.36.36-.77.72-1.24 1.03C16.17 14.3 14.35 15.07 12.87 15.07zM18 11h-4c.3-.2.59-.42.86-.67h3.14v.67z" />
+                    <circle cx="12" cy="12" r="10" />
+                    <ellipse cx="12" cy="12" rx="4" ry="10" />
+                    <line x1="2" y1="9" x2="22" y2="9" />
+                    <line x1="2" y1="15" x2="22" y2="15" />
                   </svg>
                 </button>
 
