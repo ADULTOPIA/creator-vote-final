@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { useAuth } from '../contexts/AuthContext';
 import analytics from '../services/analytics';
 import { fetchCreators } from '../services/creatorService';
-import { fetchUserVotesToday } from '../services/userVoteService';
 import { submitVotes, VoteApiError } from '../services/voteService';
 import { Creator } from '../types/creator';
 import Modal from '../components/Modal';
@@ -15,12 +14,8 @@ import FloatingHeart from '../components/FloatingHeart';
 import { availableLanguages, languageNames } from '../i18n';
 
 const HomePage: React.FC = () => {
-  const { user, loading: authLoading, loginInfo, signInWithGoogle, logout, getIdToken, refreshLoginInfo, loginError, clearLoginError } = useAuth();
+  const { getToken } = useAuth();
   const { t, i18n } = useTranslation();
-
-  const dayVotes = loginInfo?.dayVotes ?? 5;
-  const isBlocked = loginInfo?.isBlocked ?? false;
-  const maxVotes = dayVotes;
 
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [lockedIds, setLockedIds] = React.useState<string[]>([]);
@@ -31,32 +26,29 @@ const HomePage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [submitMessage, setSubmitMessage] = React.useState<{ type: 'success' | 'error'; text: string; code?: string; status?: number } | null>(null);
   const [showConfirmPopup, setShowConfirmPopup] = React.useState(false);
-  const [showLoginModal, setShowLoginModal] = React.useState(false);
   const [showNoVotesModal, setShowNoVotesModal] = React.useState(false);
   const [showAlreadyVotedModal, setShowAlreadyVotedModal] = React.useState(false);
-  const [showAccountBlockedModal, setShowAccountBlockedModal] = React.useState(false);
   const [showNoCreatorsModal, setShowNoCreatorsModal] = React.useState(false);
   const [floatingHearts, setFloatingHearts] = React.useState<Array<{ id: string; x: number; y: number; size: 'large' | 'small'; duration: number }>>([]);
-  const [showUserMenu, setShowUserMenu] = React.useState(false);
-  const menuRef = React.useRef<HTMLDivElement>(null);
+  const [showLanguageMenu, setShowLanguageMenu] = React.useState(false);
+  const langMenuRef = React.useRef<HTMLDivElement>(null);
   const cardRadiusClass = 'rounded-2xl';
 
-  // メニュー外クリック検出
+  // 言語メニュー外クリック検出
   React.useEffect(() => {
     const handleOutsideClick = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false);
+      if (langMenuRef.current && !langMenuRef.current.contains(event.target as Node)) {
+        setShowLanguageMenu(false);
       }
     };
 
-    if (showUserMenu) {
+    if (showLanguageMenu) {
       document.addEventListener('mousedown', handleOutsideClick);
       return () => document.removeEventListener('mousedown', handleOutsideClick);
     }
-  }, [showUserMenu]);
+  }, [showLanguageMenu]);
 
   React.useEffect(() => {
-    if (authLoading) return; // 認証状態が確定するまで待つ
     const controller = new AbortController();
 
     const loadPageData = async () => {
@@ -65,21 +57,8 @@ const HomePage: React.FC = () => {
       setSubmitMessage(null);
 
       try {
-        let idToken: string | undefined;
-        if (user) {
-          try {
-            idToken = await user.getIdToken();
-          } catch {
-            // token fetch failed — proceed without auth for creators list
-          }
-        }
-
-        const [creatorData, todayVotes] = await Promise.all([
-          fetchCreators({ signal: controller.signal }),
-          user && idToken
-            ? fetchUserVotesToday({ signal: controller.signal, idToken })
-            : Promise.resolve({ creatorIds: [] as string[] }),
-        ]);
+        const creatorData = await fetchCreators({ signal: controller.signal });
+        
         // Fisher-Yates shuffle for true random order
         const shuffled = [...creatorData];
         for (let i = shuffled.length - 1; i > 0; i--) {
@@ -88,9 +67,8 @@ const HomePage: React.FC = () => {
         }
 
         setCreators(shuffled);
-        setLockedIds(todayVotes.creatorIds);
-        setSelectedIds(todayVotes.creatorIds);
-        // 成功時は以前のエラーメッセージをクリアする
+        setLockedIds([]);
+        setSelectedIds([]);
         setErrorMessage(null);
       } catch (error) {
         if (error instanceof DOMException && error.name === 'AbortError') {
@@ -111,11 +89,7 @@ const HomePage: React.FC = () => {
     loadPageData();
 
     return () => controller.abort();
-  }, [refreshToken, user, authLoading]);
-
-  React.useEffect(() => {
-    if (isBlocked) setShowAccountBlockedModal(true);
-  }, [isBlocked]);
+  }, [refreshToken, t]);
 
   React.useEffect(() => {
     if (!isLoading && !errorMessage && creators.length === 0) {
@@ -177,18 +151,8 @@ const HomePage: React.FC = () => {
     setFloatingHearts(prev => prev.filter(heart => heart.id !== id));
   };
 
-  const toggleSelect = (id: string, isDisabled: boolean) => {
+  const toggleSelect = (id: string) => {
     if (lockedIds.includes(id)) {
-      return;
-    }
-
-    if (isDisabled) {
-      setShowNoVotesModal(true);
-      return;
-    }
-
-    if (!user) {
-      setShowLoginModal(true);
       return;
     }
 
@@ -201,15 +165,9 @@ const HomePage: React.FC = () => {
       if (prev.includes(id)) {
         return prev.filter(item => item !== id);
       }
-      if (prev.length >= maxVotes) {
-        return prev;
-      }
       return [...prev, id];
     });
   };
-
-  const remaining = Math.max(0, maxVotes - selectedIds.length);
-  const reachedLimit = selectedIds.length >= maxVotes;
 
   const newSelections = selectedIds.filter(id => !lockedIds.includes(id));
 
@@ -227,22 +185,17 @@ const HomePage: React.FC = () => {
   const handleConfirmVote = async () => {
     if (newSelections.length === 0) return;
 
-    if (!user) {
-      try {
-        await signInWithGoogle();
-      } catch {
-        setSubmitMessage({ type: 'error', text: t('loginCancelled') });
-        setShowConfirmPopup(false);
-        return;
-      }
+    const token = getToken();
+    if (!token) {
+      setSubmitMessage({ type: 'error', text: t('authError') });
+      return;
     }
 
     setIsSubmitting(true);
     setSubmitMessage(null);
 
     try {
-      const idToken = await getIdToken();
-      const result = await submitVotes(idToken, newSelections);
+      const result = await submitVotes(token, newSelections);
 
       // Track successful vote submission
       analytics.event('vote_submitted', {
@@ -255,7 +208,6 @@ const HomePage: React.FC = () => {
           ? { ...creator, totalVoteCount: creator.totalVoteCount + 1 }
           : creator
       ));
-      await refreshLoginInfo();
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (error) {
       if (error instanceof VoteApiError) {
@@ -270,22 +222,6 @@ const HomePage: React.FC = () => {
               type: 'error',
               text: t('authError'),
             });
-            try {
-              await signInWithGoogle();
-              setSubmitMessage(null);
-              const newToken = await getIdToken();
-              const retryResult = await submitVotes(newToken, newSelections);
-              setLockedIds(prev => [...prev, ...retryResult.acceptedCreatorIds]);
-              setCreators(prev => prev.map(creator =>
-                retryResult.acceptedCreatorIds.includes(creator.creatorId)
-                  ? { ...creator, totalVoteCount: creator.totalVoteCount + 1 }
-                  : creator
-              ));
-              await refreshLoginInfo();
-              window.scrollTo({ top: 0, behavior: 'smooth' });
-            } catch {
-              setSubmitMessage({ type: 'error', text: t('reauthFailed') });
-            }
             break;
           case 403:
             setSubmitMessage({ type: 'error', text: t('accountBlocked') });
@@ -338,8 +274,8 @@ const HomePage: React.FC = () => {
   };
 
   const renderContent = () => {
-    if (authLoading || isLoading) {
-      return <Loading message={authLoading ? t('authChecking') : t('loadingCreators')} />;
+    if (isLoading) {
+      return <Loading message={t('loadingCreators')} />;
     }
 
 
@@ -369,7 +305,6 @@ const HomePage: React.FC = () => {
           {creators.map(creator => {
             const isSelected = selectedIds.includes(creator.creatorId);
             const isLocked = lockedIds.includes(creator.creatorId);
-            const isDisabled = reachedLimit && !isSelected;
             let cardClass = '';
             if (isLocked) {
               cardClass = 'bg-white border border-gray-200 cursor-not-allowed';
@@ -387,7 +322,7 @@ const HomePage: React.FC = () => {
                     setShowAlreadyVotedModal(true);
                     return;
                   }
-                  toggleSelect(creator.creatorId, isDisabled);
+                  toggleSelect(creator.creatorId);
                 }}
                 className={`text-left ${cardRadiusClass} shadow-sm transition hover:shadow-md ${cardClass}`}
               >
@@ -505,50 +440,30 @@ const HomePage: React.FC = () => {
               />
             </div>
             <div className="flex items-center gap-4">
-              {user && (
-                <div className="text-sm font-medium text-gray-700">
-                  {t('remaining')} <span className="text-pink-500 font-semibold">{remaining}</span> / {maxVotes} {t('votes')}
-                </div>
-              )}
-              <div className="relative" ref={menuRef}>
-                {user ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center gap-2 hover:opacity-75 transition"
-                    title="メニュー"
+              <div className="relative" ref={langMenuRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowLanguageMenu(!showLanguageMenu)}
+                  className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-300 hover:bg-gray-400 transition shadow flex-shrink-0"
+                  title="言語選択"
+                >
+                  <svg
+                    className="h-5 w-5 text-gray-600"
+                    fill="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    {user.photoURL && (
-                      <img src={user.photoURL} alt="" className="h-8 w-8 rounded-full object-cover" />
-                    )}
-                    <span className="hidden text-xs text-gray-500 sm:inline">{user.displayName}</span>
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => setShowUserMenu(!showUserMenu)}
-                    className="flex items-center justify-center h-8 w-8 rounded-full bg-gray-300 hover:bg-gray-400 transition shadow flex-shrink-0"
-                    title="メニュー"
-                  >
-                    <svg
-                      className="h-5 w-5 text-gray-600"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
-                    </svg>
-                  </button>
-                )}
+                    <path d="M12.87 15.07L10.33 12.56h.86c4.1 0 7.48-1.05 9.84-3.41v2.64c-.36.36-.77.72-1.24 1.03C16.17 14.3 14.35 15.07 12.87 15.07zM18 11h-4c.3-.2.59-.42.86-.67h3.14v.67z" />
+                  </svg>
+                </button>
 
-                {/* ドロップダウンメニュー */}
-                {showUserMenu && (
+                {/* 言語選択メニュー */}
+                {showLanguageMenu && (
                   <div
-                    className="absolute right-0 mt-2 w-48 rounded-lg bg-white/90 backdrop-blur-md border border-gray-200/60 shadow-lg z-50 overflow-hidden"
+                    className="absolute right-0 mt-2 w-40 rounded-lg bg-white/90 backdrop-blur-md border border-gray-200/60 shadow-lg z-50 overflow-hidden"
                     style={{ backdropFilter: 'saturate(120%) blur(6px)' }}
                   >
                     <div className="py-2 bg-gradient-to-b from-white/40 to-white/20">
-                      {/* 言語選択 */}
-                      <div className="px-4 py-2 border-b border-gray-200/30">
+                      <div className="px-4 py-2">
                         <p className="text-xs font-semibold text-gray-600 mb-2">{t('language')}</p>
                         <div className="space-y-1">
                           {availableLanguages.map(lang => (
@@ -556,12 +471,11 @@ const HomePage: React.FC = () => {
                               key={lang}
                               type="button"
                               onClick={async () => {
-                                // Track language selection event
                                 analytics.event('language_changed', {
                                   language_code: lang,
                                 });
                                 await i18n.changeLanguage(lang);
-                                setShowUserMenu(false);
+                                setShowLanguageMenu(false);
                               }}
                               className={`block w-full text-left px-3 py-2 text-sm rounded transition-colors duration-150 ${
                                 i18n.language === lang
@@ -574,33 +488,6 @@ const HomePage: React.FC = () => {
                           ))}
                         </div>
                       </div>
-
-                      {/* 言語選択とログイン・ログアウトの間の区切り線 */}
-                      <div className="my-2 border-t-[1px] border-gray-200" />
-                      {/* ログイン・ログアウトボタン */}
-                      {!user ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            signInWithGoogle();
-                            setShowUserMenu(false);
-                          }}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-white/30 transition-colors duration-150"
-                        >
-                          {t('googleLoginButton')}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={async () => {
-                            await logout();
-                            setShowUserMenu(false);
-                          }}
-                          className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-white/30 transition-colors duration-150"
-                        >
-                          {t('googleLogoutButton', 'ログアウト')}
-                        </button>
-                      )}
                     </div>
                   </div>
                 )}
@@ -626,9 +513,7 @@ const HomePage: React.FC = () => {
               >
                 {isSubmitting
                   ? t('submitting')
-                  : user
-                    ? t('confirmVotesButton', { count: newSelections.length })
-                    : t('loginAndVoteButton', { count: newSelections.length })}
+                  : t('confirmVotesButton', { count: newSelections.length })}
               </button>
             </div>
           </div>
@@ -658,47 +543,8 @@ const HomePage: React.FC = () => {
           selectedCreators={creators.filter(c => newSelections.includes(c.creatorId))}
         />
 
-        <Modal
-          isOpen={showLoginModal}
-          title={t('loginRequired')}
-          onCancel={() => setShowLoginModal(false)}
-          buttons={[
-            {
-              label: t('googleLoginButton'),
-              onClick: async () => {
-                try {
-                  await signInWithGoogle();
-                  setShowLoginModal(false);
-                } catch (error) {
-                  console.error('Login failed:', error);
-                }
-              },
-              variant: 'primary' as const,
-            },
-            {
-              label: t('cancelButton'),
-              onClick: () => setShowLoginModal(false),
-              variant: 'secondary' as const,
-            },
-          ]}
-        >
-          <p className="text-sm text-gray-600">{t('loginRequiredText')}</p>
-        </Modal>
 
-        <Modal
-          isOpen={showNoVotesModal}
-          title={t('noVotesLeftTitle')}
-          onCancel={() => setShowNoVotesModal(false)}
-          buttons={[
-            {
-              label: t('okButton'),
-              onClick: () => setShowNoVotesModal(false),
-              variant: 'primary' as const,
-            },
-          ]}
-        >
-          <p className="text-sm text-gray-600">{t('noVotesLeftText')}</p>
-        </Modal>
+
 
         <Modal
           isOpen={showNoCreatorsModal}
@@ -796,38 +642,6 @@ const HomePage: React.FC = () => {
           ]}
         >
           <p className="text-sm text-gray-600">{errorMessage}</p>
-        </Modal>
-
-        {/* Login error from auth context */}
-        <Modal
-          isOpen={!!loginError}
-          title={t('loginError')}
-          onCancel={clearLoginError}
-          buttons={[
-            {
-              label: t('closeButton'),
-              onClick: clearLoginError,
-              variant: 'primary' as const,
-            },
-          ]}
-        >
-          <p className="text-sm text-gray-600">{loginError}</p>
-        </Modal>
-
-        {/* Account blocked modal shown once when detected */}
-        <Modal
-          isOpen={showAccountBlockedModal}
-          title={t('accountBlocked')}
-          onCancel={() => setShowAccountBlockedModal(false)}
-          buttons={[
-            {
-              label: t('okButton'),
-              onClick: () => setShowAccountBlockedModal(false),
-              variant: 'primary' as const,
-            },
-          ]}
-        >
-          <p className="text-sm text-gray-600">{t('accountBlockedFull')}</p>
         </Modal>
       </div>
     </div>

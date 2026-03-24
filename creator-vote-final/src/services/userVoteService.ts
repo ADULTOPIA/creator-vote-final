@@ -7,15 +7,15 @@ const API_ENDPOINT = `${API_BASE_URL}${API_PATH}`;
 
 type FetchUserVotesTodayOptions = {
   signal?: AbortSignal;
-  /** Firebase ID token — required when calling the real API */
-  idToken?: string;
+  /** Authentication token — required when calling the real API */
+  token?: string;
 };
 
-export const fetchUserVotesToday = async ({ signal, idToken }: FetchUserVotesTodayOptions = {}): Promise<UserVotesTodayResponse> => {
+export const fetchUserVotesToday = async ({ signal, token }: FetchUserVotesTodayOptions = {}): Promise<UserVotesTodayResponse> => {
 
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (idToken) {
-    headers['Authorization'] = `Bearer ${idToken}`;
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
   const response = await fetch(API_ENDPOINT, { signal, headers });
