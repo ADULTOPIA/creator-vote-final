@@ -101,7 +101,7 @@ const TokenInputModal: React.FC<TokenInputModalProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-800">コードを入力してクリエイターに投票</h2>
+          <h2 className="text-lg font-bold text-gray-800">{t('tokenModalTitle')}</h2>
           <button
             type="button"
             onClick={onCancel}
@@ -120,7 +120,7 @@ const TokenInputModal: React.FC<TokenInputModalProps> = ({
 
         <div className="mb-6">
           <p className="text-sm text-gray-600 mb-4 text-center">
-            16桁のコードを入力してください
+            {t('tokenInputPlaceholder')}
           </p>
           <div className="flex items-center justify-center gap-2">
             {segments.map((seg, i) => (
@@ -155,7 +155,7 @@ const TokenInputModal: React.FC<TokenInputModalProps> = ({
             disabled={!isFilled || isSubmitting}
             className="rounded-full px-6 py-2 font-semibold shadow transition bg-[#FF69B4] text-white hover:brightness-105 disabled:bg-gray-400"
           >
-            {isSubmitting ? t('submitting') : '確認'}
+            {isSubmitting ? t('submitting') : t('tokenConfirmButton')}
           </button>
         </div>
       </div>
