@@ -9,6 +9,7 @@ const RankingPage: React.FC = () => {
   const [creators, setCreators] = React.useState<Creator[]>([]);
   const [isLoading, setIsLoading] = React.useState(true);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+  const [zoom, setZoom] = React.useState(1);
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -18,6 +19,12 @@ const RankingPage: React.FC = () => {
         } else {
           document.exitFullscreen().catch(() => {});
         }
+      } else if (e.key === '+' || e.key === '=') {
+        setZoom(z => Math.min(z + 0.1, 3));
+      } else if (e.key === '-') {
+        setZoom(z => Math.max(z - 0.1, 0.3));
+      } else if (e.key === '0') {
+        setZoom(1);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -60,7 +67,7 @@ const RankingPage: React.FC = () => {
         className="pointer-events-none absolute inset-0 bg-white/50 shadow-lg backdrop-blur"
       />
 
-      <div className="relative z-10 flex flex-col flex-1 w-full max-w-2xl mx-auto px-4 py-10">
+      <div className="relative z-10 flex flex-col flex-1 w-full max-w-2xl mx-auto px-4 py-10" style={{ transform: `scale(${zoom})`, transformOrigin: 'center bottom' }}>
         {isLoading && <Loading message="読み込み中..." />}
         {errorMessage && <p className="text-center text-sm text-red-500">{errorMessage}</p>}
 
