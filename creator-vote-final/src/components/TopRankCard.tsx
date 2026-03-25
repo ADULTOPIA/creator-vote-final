@@ -34,9 +34,9 @@ const TopRankCard: React.FC<Props> = ({ creator, rank, size }) => {
         <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-gray-400 text-sm font-bold text-white shadow">
           {rank}
         </span>
-        <p className="truncate text-xl font-semibold text-gray-800">{creator.displayName}</p>
-        {snsId && <p className="truncate text-sm text-gray-500">{snsId}</p>}
-        <p className="mt-2 text-base font-bold text-[#FF69B4]">
+        <p className="truncate font-semibold text-gray-800" style={{ fontSize: `${1.25 * size / 240}rem` }}>{creator.displayName}</p>
+        {snsId && <p className="truncate text-gray-500" style={{ fontSize: `${0.875 * size / 240}rem` }}>{snsId}</p>}
+        <p className="mt-2 font-bold text-[#FF69B4]" style={{ fontSize: `${1 * size / 240}rem` }}>
           {creator.totalVoteCount.toLocaleString()} 票
         </p>
       </div>
