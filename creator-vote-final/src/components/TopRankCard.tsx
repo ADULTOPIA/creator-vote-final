@@ -5,6 +5,7 @@ type Props = {
   creator: Creator;
   rank: number;
   size: number; // カード幅(px)
+  textSize?: number; // 文字サイズ基準(px)、省略時はsizeと同じ
 };
 
 const extractSnsId = (url?: string): string | null => {
@@ -18,8 +19,9 @@ const extractSnsId = (url?: string): string | null => {
   }
 };
 
-const TopRankCard: React.FC<Props> = ({ creator, rank, size }) => {
+const TopRankCard: React.FC<Props> = ({ creator, rank, size, textSize }) => {
   const snsId = extractSnsId(creator.snsLink);
+  const ts = textSize ?? size;
   return (
   <div className="flex flex-col items-center" style={{ width: size }}>
     <div className="w-full overflow-hidden rounded-2xl bg-white shadow-sm">
@@ -31,12 +33,12 @@ const TopRankCard: React.FC<Props> = ({ creator, rank, size }) => {
         />
       </div>
       <div className="relative px-3 py-4">
-        <span className="absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-gray-400 text-sm font-bold text-white shadow">
+        <span className="absolute right-2 bottom-2 flex h-6 w-6 items-center justify-center rounded-full bg-gray-400 text-xs font-bold text-white shadow">
           {rank}
         </span>
-        <p className="truncate font-semibold text-gray-800" style={{ fontSize: `${1.25 * size / 240}rem` }}>{creator.displayName}</p>
-        {snsId && <p className="truncate text-gray-500" style={{ fontSize: `${0.875 * size / 240}rem` }}>{snsId}</p>}
-        <p className="mt-2 font-bold text-[#FF69B4]" style={{ fontSize: `${1 * size / 240}rem` }}>
+        <p className="break-words font-semibold text-gray-800" style={{ fontSize: `${1.25 * ts / 240}rem` }}>{creator.displayName}</p>
+        {snsId && <p className="break-all text-gray-500" style={{ fontSize: `${0.875 * ts / 240}rem` }}>{snsId}</p>}
+        <p className="mt-2 font-bold text-[#FF69B4]" style={{ fontSize: `${1 * ts / 240}rem` }}>
           {creator.totalVoteCount.toLocaleString()} 票
         </p>
       </div>

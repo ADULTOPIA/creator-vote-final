@@ -33,18 +33,18 @@ const SmallRankCard: React.FC<Props> = ({ creator, rank, large = false }) => {
       />
       <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 px-3">
         <div className="flex min-w-0 flex-col gap-0.5">
-          <span className={`truncate font-semibold text-gray-800 ${large ? 'text-sm' : 'text-xs'}`}>
+          <span className={`break-words font-semibold text-gray-800 ${large ? 'text-sm' : 'text-xs'}`}>
             {creator.displayName}
           </span>
           {snsId && (
-            <span className="truncate text-xs text-gray-800">{snsId}</span>
+            <span className="break-all text-xs text-gray-800">{snsId}</span>
           )}
         </div>
         <span className={`font-bold text-[#FF69B4] ${large ? 'text-xs' : 'text-xs'}`}>
           {creator.totalVoteCount.toLocaleString()} 票
         </span>
       </div>
-      <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-gray-400 text-xs font-bold text-white">
+      <span className="absolute right-2 bottom-2 flex h-6 w-6 items-center justify-center rounded-full bg-gray-400 text-xs font-bold text-white">
         {rank}
       </span>
     </div>

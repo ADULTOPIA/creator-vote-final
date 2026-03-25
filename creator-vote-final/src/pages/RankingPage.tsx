@@ -81,7 +81,7 @@ const RankingPage: React.FC = () => {
               <div className="flex items-end justify-center gap-8">
                 {top3[1] && <TopRankCard creator={top3[1]} rank={2} size={200} />}
                 {top3[0] && <TopRankCard creator={top3[0]} rank={1} size={240} />}
-                {top3[2] && <TopRankCard creator={top3[2]} rank={3} size={160} />}
+                {top3[2] && <TopRankCard creator={top3[2]} rank={3} size={160} textSize={200} />}
               </div>
             )}
 
