@@ -27,7 +27,6 @@ const RankingPage: React.FC = () => {
 
   const top3 = creators.slice(0, 3);
   const rank4to10 = creators.slice(3, 10);
-  const rest = creators.slice(10);
 
   const row1 = rank4to10.slice(0, 3); // 4, 5, 6位
   const row2 = rank4to10.slice(3);   // 7, 8, 9, 10位
@@ -83,37 +82,6 @@ const RankingPage: React.FC = () => {
                 </div>
               )}
 
-              {/* 11位以降: 通常リスト */}
-              {rest.length > 0 && (
-                <div className="flex flex-col gap-3">
-                  {rest.map((creator, index) => {
-                    const rank = index + 11;
-                    return (
-                      <div
-                        key={creator.creatorId}
-                        className="flex items-center gap-4 rounded-2xl bg-white/80 px-4 py-3 shadow-sm backdrop-blur"
-                      >
-                        <span className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-gray-400 text-sm font-bold text-white">
-                          {rank}
-                        </span>
-                        <img
-                          src={creator.imageUrl}
-                          alt={creator.displayName}
-                          className="h-14 w-10 flex-shrink-0 rounded-lg object-cover"
-                        />
-                        <div className="flex flex-1 items-center justify-between gap-2 min-w-0">
-                          <span className="truncate text-sm font-semibold text-gray-800">
-                            {creator.displayName}
-                          </span>
-                          <span className="flex-shrink-0 text-sm font-bold text-[#FF69B4]">
-                            {creator.totalVoteCount.toLocaleString()} 票
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
             </div>
           </div>
         )}
